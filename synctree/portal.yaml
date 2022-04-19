@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-portal
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-portal
+  template:
+    metadata:
+      labels:
+        service: synctree-portal
+    spec:
+      containers:
+      - name: synctree-portal
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-portal:0.1.0.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-portal-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-portal/logs"
+        command: ["/bin/bash", "-c", "sh /root/deploy/portal.sh && sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs"]
+        volumeMounts:
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-portal-conf
+        configMap:
+          name: nginx-portal-conf
+          items:
+            - key: portal.conf
+              path: portal.conf
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/portal-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synctree-portal
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 80
+    nodePort: 30183
+    protocol: TCP
+  selector:
+    service: synctree-portal

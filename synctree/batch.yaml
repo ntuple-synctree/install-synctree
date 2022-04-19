@@ -1,0 +1,58 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-batch-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-batch-agent
+  template:
+    metadata:
+      labels:
+        service: synctree-batch-agent
+    spec:
+      containers:
+      - name: synctree-batch-agent
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-batch:1.0.4.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-batch-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-batch/logs"
+        command: ["/bin/bash", "-c", "sh /root/deploy/batch.sh && sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs && chmod -R 775 /home/ubuntu/user-storage && chown root:www-data /home/ubuntu/user-storage"]
+        volumeMounts:
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-batch-conf
+        configMap:
+          name: nginx-batch-conf
+          items:
+            - key: batch.conf
+              path: batch.conf
+      - name: user-storage
+        hostPath:
+          path: "/data/store"
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/batch-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo

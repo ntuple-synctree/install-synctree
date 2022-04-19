@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-tool-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-tool-proxy
+  template:
+    metadata:
+      labels:
+        service: synctree-tool-proxy
+    spec:
+      containers:
+      - name: synctree-tool-proxy
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.1
+        imagePullPolicy: IfNotPresent
+        securityContext:
+          capabilities:
+            add:
+              - NET_BIND_SERVICE
+              - SYS_ADMIN
+              - DAC_READ_SEARCH
+          privileged: true
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-tool-proxy-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-tool/logs"
+        command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs"]
+        volumeMounts:
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-tool-proxy-conf
+        configMap:
+          name: nginx-tool-proxy-conf
+          items:
+            - key: tool-proxy.conf
+              path: tool-proxy.conf
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/tool-proxy-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synctree-tool-proxy
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 80
+    nodePort: 30190
+    protocol: TCP
+  selector:
+    service: synctree-tool-proxy
+

@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-testing
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-testing
+  template:
+    metadata:
+      labels:
+        service: synctree-testing
+    spec:
+      containers:
+      - name: synctree-testing
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-testing:1.0.4.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-testing-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-testing/logs"
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs && chmod -R 775 /home/ubuntu/user-storage && chown root:www-data /home/ubuntu/user-storage"]
+        volumeMounts:
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-testing-conf
+        configMap:
+          name: nginx-testing-conf
+          items:
+            - key: testing.conf
+              path: testing.conf
+      - name: user-storage
+        hostPath:
+          path: "/data/store"
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/testing-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synctree-testing
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 80
+    nodePort: 30182
+    protocol: TCP
+  selector:
+    service: synctree-testing

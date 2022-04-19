@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-tool
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-tool
+  template:
+    metadata:
+      labels:
+        service: synctree-tool
+    spec:
+      containers:
+      - name: synctree-tool
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-tool-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-tool/logs"
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs && chmod -R 775 /home/ubuntu/user-storage && chown root:www-data /home/ubuntu/user-storage"]
+        volumeMounts:
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-tool-conf
+        configMap:
+          name: nginx-tool-conf
+          items:
+            - key: tool.conf
+              path: tool.conf
+      - name: user-storage
+        hostPath:
+          path: "/data/store"
+          type: DirectoryOrCreate
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/tool-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synctree-tool
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 80
+    nodePort: 30181
+    protocol: TCP
+  selector:
+    service: synctree-tool

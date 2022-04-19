@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: synctree-studio
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      service: synctree-studio
+  template:
+    metadata:
+      labels:
+        service: synctree-studio
+    spec:
+      containers:
+      - name: synctree-studio
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-studio:1.0.7.1
+        imagePullPolicy: IfNotPresent
+        volumeMounts:
+        - name: deploy-configmap
+          mountPath: "/root/deploy"
+        - name: nginx-studio-conf
+          mountPath: "/etc/nginx/sites-enabled"
+        - name: log
+          mountPath: "/home/ubuntu/apps/synctree-studio/logs"
+        command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
+      initContainers:
+      - name: log-dir-permission-fix
+        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs"]
+        volumeMounts:
+        - name: log 
+          mountPath: "/mnt/logs"
+      volumes:
+      - name: deploy-configmap
+        configMap:
+          name: deploy-configmap
+      - name: nginx-studio-conf
+        configMap:
+          name: nginx-studio-conf
+          items:
+            - key: studio.conf
+              path: studio.conf
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/studio-log"
+          type: DirectoryOrCreate 
+      imagePullSecrets:
+        - name: private-repo
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: synctree-studio
+spec:
+  type: NodePort
+  externalTrafficPolicy: Cluster
+  ports:
+  - port: 80
+    nodePort: 30180
+    protocol: TCP
+  selector:
+    service: synctree-studio
