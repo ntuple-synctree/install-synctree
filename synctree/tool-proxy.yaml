@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-tool-proxy
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.1
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.2
         imagePullPolicy: IfNotPresent
         securityContext:
           capabilities:

@@ -17,6 +17,7 @@ cat /root/deploy/config.ini > /home/ubuntu/apps/secure/config.ini &&
 cat /root/deploy/private_key.pem > /home/ubuntu/apps/secure/rsa/private_key.pem &&
 cat /root/deploy/credentials > /home/ubuntu/.synctree/credentials &&
 cat /root/deploy/providerConfig.json > /home/ubuntu/.synctree/providerConfig.json &&
+cat /root/deploy/license.txt > /home/ubuntu/.synctree/license.txt &&
 
 ### add hosts
 if [ -f "/root/deploy/hosts" ]; then

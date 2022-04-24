@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-testing
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-testing:1.0.4.1
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-testing:1.0.4.2
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: deploy-configmap

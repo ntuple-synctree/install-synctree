@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-studio
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-studio:1.0.7.1
+        image: repo.synctreestudio.com/synctree-studio-project/synctree-studio:1.0.8.3
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: deploy-configmap
