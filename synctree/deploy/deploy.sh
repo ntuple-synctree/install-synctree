@@ -24,6 +24,11 @@ if [ -f "/root/deploy/hosts" ]; then
     cat /root/deploy/hosts >> /etc/hosts
 fi &&
 
+### register-usage
+#curl http://localhost/system/mms/registerUsage?region=$REGION&version=$VERSION
+cd /home/ubuntu/apps/synctree-studio/public/mms/ && ./mms.sh 'us-east-1' 'latest'
+
+### start service
 /usr/sbin/service cron start && 
 /usr/sbin/service php7.3-fpm start && 
 nginx -g 'daemon off;'

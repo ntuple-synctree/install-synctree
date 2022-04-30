@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-tool-proxy
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.2
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/tool:1.0.4.2
         imagePullPolicy: IfNotPresent
         securityContext:
           capabilities:
@@ -33,7 +33,7 @@ spec:
         command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
       initContainers:
       - name: log-dir-permission-fix
-        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/busybox:1.0.0.0
         imagePullPolicy: IfNotPresent
         command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs"]
         volumeMounts:
