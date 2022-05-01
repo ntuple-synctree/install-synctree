@@ -27,6 +27,5 @@ kubectl apply -f ./studio.yaml --namespace=synctree
 kubectl apply -f ./tool.yaml --namespace=synctree
 kubectl apply -f ./tool-proxy.yaml --namespace=synctree
 kubectl apply -f ./testing.yaml --namespace=synctree
-kubectl apply -f ./batch.yaml --namespace=synctree
 kubectl apply -f ./portal.yaml --namespace=synctree
 
