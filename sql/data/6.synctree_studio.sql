@@ -33,21 +33,6 @@ CREATE TABLE `account_master`(
 
 
 /* Create table in target */
-CREATE TABLE `account_otp`(
-	`otp_id` int(10) NOT NULL  auto_increment COMMENT 'OTP ID' , 
-	`account_id` int(10) NOT NULL  COMMENT '계정 ID' , 
-	`account_type` tinyint(3) NOT NULL  COMMENT 'Account Type (1: admin, 2: user)' , 
-	`otp_type` varchar(12) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'OTP Type(Google)' , 
-	`secret_key` varchar(12) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'Secret key 값' , 
-	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
-	`modify_date` datetime NULL  COMMENT '수정 일자' , 
-	PRIMARY KEY (`otp_id`) , 
-	UNIQUE KEY `uix-account_otp-account_id_type`(`account_id`,`account_type`) , 
-	UNIQUE KEY `uix-account_otp-secret_key`(`secret_key`) 
-) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='계정 OTP';
-
-
-/* Create table in target */
 CREATE TABLE `account_slave`(
 	`slave_id` smallint(5) unsigned NOT NULL  auto_increment COMMENT 'User ID' , 
 	`slave_type` tinyint(3) unsigned NOT NULL  DEFAULT 1 COMMENT 'User 유형 (0=Temporary, 1=Slave, 2=Root)' , 
@@ -69,6 +54,23 @@ CREATE TABLE `account_slave`(
 	CONSTRAINT `fk-master-slave` 
 	FOREIGN KEY (`master_id`) REFERENCES `account_master` (`master_id`) 
 ) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='계정 User';
+
+
+/* Create table in target */
+CREATE TABLE `account_social`(
+	`social_id` int(10) unsigned NOT NULL  auto_increment COMMENT 'Social ID' , 
+	`social_type` varchar(20) COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'google' COMMENT 'Social 유형' , 
+	`social_email` varchar(64) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'Social 이메일' , 
+	`user_id` smallint(5) unsigned NOT NULL  COMMENT 'User ID' , 
+	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
+	`login_date` datetime NULL  COMMENT '로그인 일자' , 
+	`is_del` varchar(4) COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'N' COMMENT '삭제 여부' , 
+	`del_date` datetime NULL  COMMENT '삭제 일자' , 
+	PRIMARY KEY (`social_id`) , 
+	KEY `nix-account_social-user_id`(`user_id`) , 
+	CONSTRAINT `fk-slave-social` 
+	FOREIGN KEY (`user_id`) REFERENCES `account_slave` (`slave_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='계정 Social 연동';
 
 
 /* Create table in target */
@@ -268,7 +270,7 @@ CREATE TABLE `dictionary`(
 CREATE TABLE `dictionary_detail`(
 	`dictionary_detail_id` int(10) NOT NULL  auto_increment COMMENT 'dictionary_detail ID' , 
 	`dictionary_id` int(10) NULL  COMMENT 'dictionary ID' , 
-	`dictionary_type` tinyint(3) NOT NULL  COMMENT 'dictionary 타입(10 : Config / 20 : Secret)' , 
+	`dictionary_type` tinyint(3) NOT NULL  COMMENT 'dictionary 타입(10 : Config / 20 : Secret / 30: Extension)' , 
 	`key_name` varchar(40) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'Key 값' , 
 	`dictionary_detail_description` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'dictionary_detail 설명' , 
 	`key_value` json NOT NULL  COMMENT 'Key_Value값' , 
@@ -320,6 +322,22 @@ CREATE TABLE `dictionary_match`(
 	CONSTRAINT `fk-dictionary-dictionary_match` 
 	FOREIGN KEY (`dictionary_id`) REFERENCES `dictionary` (`dictionary_id`) 
 ) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='dictionary 매칭 정보';
+
+
+/* Create table in target */
+CREATE TABLE `extension_match`(
+	`extension_match_id` int(10) NOT NULL  auto_increment COMMENT 'Extension_match ID' , 
+	`dictionary_detail_id` int(10) NOT NULL  COMMENT 'Dictionary_detail ID' , 
+	`extension_type` varchar(20) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'Extension 종류' , 
+	`extension_id` int(10) NOT NULL  COMMENT 'Extension ID' , 
+	`extension_purpose` varchar(20) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'Extension 사용용도' , 
+	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
+	PRIMARY KEY (`extension_match_id`) , 
+	UNIQUE KEY `uix-extension_match-mix_id`(`extension_type`,`extension_id`,`extension_purpose`,`dictionary_detail_id`) , 
+	KEY `nix-extension_match-dictionary_detail_id`(`dictionary_detail_id`) , 
+	CONSTRAINT `fk-dictionary_detail-extension_match` 
+	FOREIGN KEY (`dictionary_detail_id`) REFERENCES `dictionary_detail` (`dictionary_detail_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='Extension 매칭 정보';
 
 
 /* Create table in target */
@@ -586,6 +604,39 @@ CREATE TABLE `revision_share`(
 
 
 /* Create table in target */
+CREATE TABLE `rfc`(
+	`rfc_id` int(10) unsigned NOT NULL  auto_increment COMMENT 'RFC ID' , 
+	`rfc_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'RFC 이름' , 
+	`admin_id` smallint(5) unsigned NOT NULL  COMMENT 'Admin ID' , 
+	`user_id` smallint(5) unsigned NOT NULL  COMMENT 'User ID' , 
+	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
+	`modify_date` datetime NULL  COMMENT '수정 일자' , 
+	`is_del` varchar(4) COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'N' COMMENT '삭제여부' , 
+	`del_date` datetime NULL  COMMENT '삭제 일자' , 
+	PRIMARY KEY (`rfc_id`) , 
+	KEY `nix-rfc-slave_id`(`user_id`) , 
+	KEY `nix-rfc-rfc_name`(`rfc_name`) , 
+	CONSTRAINT `fk-rfc-slave_id` 
+	FOREIGN KEY (`user_id`) REFERENCES `account_slave` (`slave_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='RFC';
+
+
+/* Create table in target */
+CREATE TABLE `rfc_match`(
+	`rfc_match_id` int(10) unsigned NOT NULL  auto_increment COMMENT 'RFC_Match ID' , 
+	`rfc_id` int(10) unsigned NOT NULL  COMMENT 'RFC ID' , 
+	`bizunit_sno` int(10) unsigned NOT NULL  COMMENT 'Bizunit SNO' , 
+	`revision_sno` int(10) unsigned NOT NULL  COMMENT 'Revision SNO' , 
+	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
+	PRIMARY KEY (`rfc_match_id`) , 
+	KEY `nix-rfc_match-rfc_id`(`rfc_id`) , 
+	KEY `nix-rfc_match-revision_sno`(`revision_sno`) , 
+	CONSTRAINT `fk-rfc_match-rfc_id` 
+	FOREIGN KEY (`rfc_id`) REFERENCES `rfc` (`rfc_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='RFC Match';
+
+
+/* Create table in target */
 CREATE TABLE `storage`(
 	`storage_id` int(10) NOT NULL  auto_increment COMMENT 'storage ID' , 
 	`storage_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage 이름' , 
@@ -617,6 +668,7 @@ CREATE TABLE `storage_detail`(
 	`admin_id` smallint(5) unsigned NOT NULL  COMMENT 'Admin ID' , 
 	`user_id` smallint(5) unsigned NOT NULL  COMMENT 'User ID' , 
 	`access_privilege` varchar(20) COLLATE utf8mb4_general_ci NULL  DEFAULT 'public' COMMENT '접근권한' , 
+	`ssl_use` enum('Y','N') COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'N' COMMENT 'SSL 사용 여부' , 
 	`register_date` datetime NOT NULL  COMMENT '등록일' , 
 	`modify_date` datetime NULL  COMMENT '수정일' , 
 	`is_del` varchar(4) COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'N' COMMENT '삭제여부' , 
@@ -626,23 +678,6 @@ CREATE TABLE `storage_detail`(
 	CONSTRAINT `fk-slave-storage_detail` 
 	FOREIGN KEY (`user_id`) REFERENCES `account_slave` (`slave_id`) 
 ) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='storage 상세 Table';
-
-
-/* Create table in target */
-CREATE TABLE `storage_detail_inside`(
-	`storage_detail_id` int(10) NOT NULL  auto_increment COMMENT 'storage_detail ID' , 
-	`storage_id` int(10) NOT NULL  COMMENT 'storage ID' , 
-	`storage_detail_name` varchar(40) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage_detail 이름' , 
-	`storage_detail_description` varchar(1000) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage_detail 설명' , 
-	`storage_type` varchar(100) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage DB 유형' , 
-	`storage_version` varchar(12) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage DB 버전' , 
-	`storage_db_info` longblob NOT NULL  COMMENT 'storage DB 정보' , 
-	`register_date` datetime NOT NULL  COMMENT '등록일' , 
-	`modify_date` datetime NULL  COMMENT '수정일' , 
-	`is_del` varchar(4) COLLATE utf8mb4_general_ci NOT NULL  DEFAULT 'N' COMMENT '삭제여부' , 
-	`del_date` datetime NULL  COMMENT '삭제일' , 
-	PRIMARY KEY (`storage_detail_id`) 
-) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='storage 상세 Table (내부용)';
 
 
 /* Create table in target */
@@ -678,6 +713,31 @@ CREATE TABLE `storage_match`(
 	CONSTRAINT `fk-storage-storage_match` 
 	FOREIGN KEY (`storage_id`) REFERENCES `storage` (`storage_id`) 
 ) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='storage 매칭 정보';
+
+
+/* Create table in target */
+CREATE TABLE `storage_ssl`(
+	`storage_ssl_id` int(10) NOT NULL  auto_increment COMMENT 'storage_ssl ID' , 
+	`storage_detail_id` int(10) NOT NULL  COMMENT 'storage_detail ID' , 
+	`storage_ssl_ca_name` varchar(40) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage_ssl CA 이름' , 
+	`storage_ssl_ca_path` varchar(200) COLLATE utf8mb4_general_ci NOT NULL  COMMENT 'storage_ssl CA 경로' , 
+	`storage_ssl_live_ca_name` varchar(40) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live CA 이름' , 
+	`storage_ssl_live_ca_path` varchar(200) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live CA 경로' , 
+	`storage_ssl_cert_name` varchar(40) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Cert 이름' , 
+	`storage_ssl_cert_path` varchar(200) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Cert 경로' , 
+	`storage_ssl_live_cert_name` varchar(40) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live Cert 이름' , 
+	`storage_ssl_live_cert_path` varchar(200) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live Cert 경로' , 
+	`storage_ssl_key_name` varchar(40) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Key 이름' , 
+	`storage_ssl_key_path` varchar(200) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Key 경로' , 
+	`storage_ssl_live_key_name` varchar(40) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live Key 이름' , 
+	`storage_ssl_live_key_path` varchar(200) COLLATE utf8mb4_general_ci NULL  COMMENT 'storage_ssl Live Key 경로' , 
+	`register_date` datetime NOT NULL  COMMENT '등록 일자' , 
+	`modify_date` datetime NULL  COMMENT '수정 일자' , 
+	PRIMARY KEY (`storage_ssl_id`) , 
+	UNIQUE KEY `uix-storage_ssl-storage_detail_id`(`storage_detail_id`) , 
+	CONSTRAINT `fk-storage_ssl-storage_detail` 
+	FOREIGN KEY (`storage_detail_id`) REFERENCES `storage_detail` (`storage_detail_id`) 
+) ENGINE=InnoDB DEFAULT CHARSET='utf8mb4' COLLATE='utf8mb4_general_ci' COMMENT='storage SSL Table';
 
 
 /* Create table in target */

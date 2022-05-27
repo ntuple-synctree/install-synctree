@@ -99,6 +99,7 @@ CREATE TABLE `deploy_resource`(
 	`deploy_resource_type` varchar(30) COLLATE utf8mb4_general_ci NOT NULL  COMMENT '배포요청 리소스 항목' , 
 	`deploy_resource_sno` int(10) NOT NULL  COMMENT '배포요청 리소스 idx(sno) 값' , 
 	`deploy_resource_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL  COMMENT '배포요청 리소스 이름' , 
+	`deploy_resource_content` longtext COLLATE utf8mb4_general_ci NULL  COMMENT '배포요청 리소스 내용' , 
 	`register_date` datetime NOT NULL  COMMENT '등록일자' , 
 	`modify_date` datetime NULL  COMMENT '수정일자' , 
 	PRIMARY KEY (`deploy_resource_id`) , 

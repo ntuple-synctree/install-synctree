@@ -10037,8 +10037,6 @@ INSERT INTO t_product(product_sno, product_name, product_tier, product_price, pr
 INSERT INTO t_product_limit(limit_sno, product_sno, limit_account, limit_guest, limit_call, limit_tps, limit_nosql_key, limit_nosql_expiry) VALUES(1, 1, 2, 0, 600, 10, 0, 30);
 INSERT INTO t_product_limit(limit_sno, product_sno, limit_account, limit_guest, limit_call, limit_tps, limit_nosql_key, limit_nosql_expiry) VALUES(2, 2, 9999, 1, -1, -1, -1, -1);
 
-ALTER TABLE storage_detail AUTO_INCREMENT = 101;
-
 
 
 USE synctree_plan;
