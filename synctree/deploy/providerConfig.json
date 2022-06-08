@@ -3,62 +3,83 @@
     "common": {
       "bi": "synctree"
     },
+    "request": {
+      "timeout": {
+        "default": 10000,
+        "testing": 60000
+      }
+    },
     "signin": {
       "has_notice": true,
       "region": "signin_text",
+      "hasResetPassword": true,
       "has_signup": false,
-      "has_outlinks": false
+      "has_outlinks": true,
+      "has_social_login": false
     },
     "header": {
-      "has_outlinks": false,
-      "has_forum_button": false
+      "has_outlinks": true,
+      "has_forum_button": true
     },
     "aside": {
-      "is_batch_available": true
+      "is_batch_available": false,
+      "is_rfc_available": false
+    },
+    "rfc": {
+      "has_op_live": false
     },
     "management": {
-      "aside": {
-        "has_marketplace": false
+      "manageAccounts": {
+        "hasNewAccountButton": true
       }
     },
     "orchestra": {
       "revision": {
-        "has_deploy": true
+        "has_deploy": false
       },
       "nblock": {
-        "has_file_block": true,
-        "has_system_block": true
+        "has_file_block": false,
+        "has_system_block": false,
+        "has_rfc_block": false,
+        "has_debugger_func": false
       }
     },
     "list": {
-      "order": "name"
+      "order": "created"
     },
     "dictionary": {
-      "has_op_live": true
+      "has_op_live": false
     },
     "storage": {
-      "has_pre_db_connect_test": false,
-      "has_op_live": true
+      "has_pre_db_connect_test": true,
+      "has_op_live": false
     },
     "gtm": {
-      "has_gtm": false 
+      "has_gtm": true
     }
   },
   "portal": {
     "common": {
-      "bi": "connectin"
+      "bi": "synctree"
     },
     "aside": {
-      "has_deploy": true
+      "has_deploy": false
     },
     "api_monitoring": {
-      "has_console_log": true
-    
+      "has_console_log": false
     },
     "request": {
-                        "timeout": {
-                          "default": 60000
+      "timeout": {
+        "default": 60000
+      }
+    },
+    "my_apps": {
+      "has_delete": true
+    },
+    "apis": {
+      "detail": {
+        "isTestRequiredLogin": true
+      }
+    }
   }
-}
-}
 }

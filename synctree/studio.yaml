@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-studio
-        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/studio:1.0.9.4
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/studio:1.1.3.2
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: deploy-configmap

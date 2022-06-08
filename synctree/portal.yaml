@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-portal
-        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/portal:0.1.0.1
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/portal:1.1.2.1
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: deploy-configmap

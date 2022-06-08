@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: synctree-testing
-        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/testing:1.0.4.2
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/testing:1.0.8.1
         imagePullPolicy: IfNotPresent
         volumeMounts:
         - name: deploy-configmap
