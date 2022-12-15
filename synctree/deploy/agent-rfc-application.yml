@@ -1,0 +1,9 @@
+server:
+  port : 8070
+spring:
+  profiles:
+    active: local
+  application:
+synctree:
+  protocolUrl: http://synctree-tool.synctree.svc/secure/getCommand
+  url.rfc: /synctree/rfc

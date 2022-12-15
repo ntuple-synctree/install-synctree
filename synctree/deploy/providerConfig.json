@@ -1,64 +1,94 @@
 {
-  "studio": {
-    "common": {
-      "bi": "synctree"
+    "studio": {
+        "common": {
+            "bi": "synctree",
+            "has_guide": {
+                "en": {
+                    "menu": true,
+                    "block_group": true,
+                    "block": true
+                },
+                "ko": {
+                    "menu": true,
+                    "block_group": true,
+                    "block": true
+                }
+            },
+            "has_subscription_service": false,
+            "deploy_envs": []
+        },
+        "sso": {
+            "customer": "synctree"
+        },
+        "request": {
+            "timeout": {
+                "default": 10000,
+                "testing": 60000
+            }
+        },
+        "signin": {
+            "has_notice": true,
+            "region": "signin_text",
+            "hasResetPassword": true,
+            "has_signup": false,
+            "has_outlinks": true,
+            "has_social_login": false
+        },
+        "header": {
+            "has_outlinks": true,
+            "has_forum_button": true
+        },
+        "aside": {
+            "is_batch_available": false,
+            "is_rfc_available": true,
+            "is_api_portal_available": true
+        },
+        "management": {
+            "manageAccounts": {
+                "hasNewAccountButton": true,
+                "has_invitation_option": false
+            }
+        },
+        "orchestra": {
+            "revision": {
+                "has_deploy": false
+            },
+            "nblock": {
+                "has_file_block": false,
+                "has_system_block": false,
+                "has_rfc_block": true,
+                "has_trace_block": false,
+                "has_debugger_func": false
+            }
+        },
+        "list": {
+            "order": "created"
+        },
+        "storage": {
+            "has_pre_db_connect_test": true,
+            "has_pconnect": false
+        },
+        "gtm": {
+            "has_gtm": true
+        }
     },
-    "signin": {
-      "has_notice": true,
-      "region": "signin_text",
-      "has_signup": false,
-      "has_outlinks": false
-    },
-    "header": {
-      "has_outlinks": false,
-      "has_forum_button": false
-    },
-    "aside": {
-      "is_batch_available": true
-    },
-    "management": {
-      "aside": {
-        "has_marketplace": false
-      }
-    },
-    "orchestra": {
-      "revision": {
-        "has_deploy": true
-      },
-      "nblock": {
-        "has_file_block": true,
-        "has_system_block": true
-      }
-    },
-    "list": {
-      "order": "name"
-    },
-    "dictionary": {
-      "has_op_live": true
-    },
-    "storage": {
-      "has_pre_db_connect_test": false,
-      "has_op_live": true
-    },
-    "gtm": {
-      "has_gtm": false 
+    "portal": {
+        "common": {
+            "bi": "synctree"
+        },
+        "aside": {
+            "has_deploy": false
+        },
+        "request": {
+            "timeout": {
+                "default": 60000
+            }
+        },
+        "my_apps": {
+            "has_delete": true
+        },
+        "apiDocuments": {
+            "isShowHeader": true
+        }
     }
-  },
-  "portal": {
-    "common": {
-      "bi": "connectin"
-    },
-    "aside": {
-      "has_deploy": true
-    },
-    "api_monitoring": {
-      "has_console_log": true
-    
-    },
-    "request": {
-                        "timeout": {
-                          "default": 60000
-  }
-}
-}
 }

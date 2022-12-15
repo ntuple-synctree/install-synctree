@@ -4,6 +4,11 @@ APP_KEY=base64:JsHu/pMCy1OT/9+t+BGKt4v3/25vIYJ/I11QXNmkIG4=
 APP_DEBUG=false
 APP_URL=
 
+#MySQL TLS 설정
+#TLS_ENABLE=true
+#TLS_VERIFY_CERT=true
+#TLS_CA_CERT=/home/ubuntu/user-storage/mysqlca.crt
+
 LOG_CHANNEL=stack
 LOG_LEVEL=debug
 
@@ -14,59 +19,59 @@ RECV_END_POINT="http://tool.prodntservice.com/plan/entrance"
 
 # for Send Agent
 # on prem develop 환경의 portal database
-DB_PORTAL_HOST=192.168.0.244
+DB_PORTAL_HOST=devIP
 DB_PORTAL_PORT=3306
 DB_PORTAL_DATABASE=synctree_portal
 DB_PORTAL_USERNAME=appserver
-DB_PORTAL_PASSWORD=Tldzmgkgk12!
+DB_PORTAL_PASSWORD=Tldzmtjqj12!
 
 # for Send Agent
 # on prem develop 환경의 studio database
-DB_STUDIO_HOST=192.168.0.244
+DB_STUDIO_HOST=devIP
 DB_STUDIO_PORT=3306
 DB_STUDIO_DATABASE=synctree_studio
 DB_STUDIO_USERNAME=appserver
-DB_STUDIO_PASSWORD=Tldzmgkgk12!
+DB_STUDIO_PASSWORD=Tldzmtjqj12!
 
 # for Send Agent
 # on prem develop 환경의 plan database
-DB_PLAN_HOST=192.168.0.244
+DB_PLAN_HOST=devIP
 DB_PLAN_PORT=3306
 DB_PLAN_DATABASE=synctree_plan
 DB_PLAN_USERNAME=appserver
-DB_PLAN_PASSWORD=Tldzmgkgk12!
+DB_PLAN_PASSWORD=Tldzmtjqj12!
 
 # for Receive Agent
 # on prem production 환경의 studio database, 배포가 이뤄지는
-DB_TARGET_STUDIO_HOST=192.168.0.244
+DB_TARGET_STUDIO_HOST=prdIP
 DB_TARGET_STUDIO_PORT=3306
 DB_TARGET_STUDIO_DATABASE=synctree_studio
 DB_TARGET_STUDIO_USERNAME=appserver
-DB_TARGET_STUDIO_PASSWORD=Tldzmgkgk12!
+DB_TARGET_STUDIO_PASSWORD=Tldzmtjqj12!
 
 # for Receive Agent
 # on prem production 환경의 studio plan, 배포가 이뤄지는
-DB_TARGET_PLAN_HOST=192.168.0.244
+DB_TARGET_PLAN_HOST=prdIP
 DB_TARGET_PLAN_PORT=3306
 DB_TARGET_PLAN_DATABASE=synctree_plan
 DB_TARGET_PLAN_USERNAME=appserver
-DB_TARGET_PLAN_PASSWORD=Tldzmgkgk12!
+DB_TARGET_PLAN_PASSWORD=Tldzmtjqj12!
 
 # sender agent가 사용하는 database
 # app/Models/Agent/SendProject 모델이 사용
-DB_SEND_AGENT_HOST=192.168.0.244
+DB_SEND_AGENT_HOST=devIP
 DB_SEND_AGENT_PORT=3306
 DB_SEND_AGENT_DATABASE=synctree_agent
 DB_SEND_AGENT_USERNAME=appserver
-DB_SEND_AGENT_PASSWORD=Tldzmgkgk12!
+DB_SEND_AGENT_PASSWORD=Tldzmtjqj12!
 
 # receive agent가 사용하는 database
 # app/Models/Agent/ReceiveProject 모델이 사용
-DB_RECEIVE_AGENT_HOST=192.168.0.244
+DB_RECEIVE_AGENT_HOST=prdIP
 DB_RECEIVE_AGENT_PORT=3306
 DB_RECEIVE_AGENT_DATABASE=synctree_agent
 DB_RECEIVE_AGENT_USERNAME=appserver
-DB_RECEIVE_AGENT_PASSWORD=Tldzmgkgk12!
+DB_RECEIVE_AGENT_PASSWORD=Tldzmtjqj12!
 
 # on prem production 에  존재하는 receive agent의 WAS  entrypoint URI
 RECEIVE_AGENT_BASE_URI=http://deploy.domain.com

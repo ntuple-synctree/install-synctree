@@ -1,0 +1,700 @@
+- name: Clear content of file
+  hosts: localhost
+  tasks:
+    - name: clear result.log
+      shell: true > ./result.log
+
+- name: Check if required variables are set
+  hosts: localhost
+  tasks:
+    - assert:
+        that:
+          - eks_cluster_name     != None
+          - elasticache_endpoint != None
+          - elasticache_port     != None
+          - aurora_data_endpoint != None
+          - aurora_data_username != None
+          - aurora_data_password != None
+          - aurora_data_port     != None
+          - aurora_log_endpoint  != None
+          - aurora_log_username  != None
+          - aurora_log_password  != None
+          - aurora_log_port      != None
+          - studio_username      != None
+          - studio_email         != None
+          - studio_password      != None
+        fail_msg:
+          - Make sure you have set the following required variables in ./group_vars/all/synctree.yaml
+          - eks_cluster_name
+          - elasticache_endpoint
+          - elasticache_port
+          - aurora_data_endpoint
+          - aurora_data_username
+          - aurora_data_password
+          - aurora_data_port
+          - aurora_log_endpoint
+          - aurora_log_username
+          - aurora_log_password
+          - aurora_log_port
+          - studio_username
+          - studio_email
+          - studio_password
+        success_msg: "Required variables are set."
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Check aws configure
+  hosts: localhost
+  tasks:
+    - name: Check aws identity
+      shell: aws sts get-caller-identity
+      register: result
+
+    - debug:
+        var: result
+
+- name: Change default output format
+  hosts: localhost
+  tasks:
+    - name: "Change default output format to yaml"
+      shell: |
+       sed -i "/output/d" ~/.aws/config
+       echo "output = yaml" >> ~/.aws/config 
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Add variables to synctree.yaml
+  hosts: localhost
+  tasks:
+    - name: "Add AWS_ACCOUNTID and AWS_REGION variables to env.sh"
+      shell: |
+        export AWS_ACCOUNTID=`aws sts get-caller-identity | yq .Account`
+        export AWS_REGION=`aws configure get region`
+
+        sed -i "/aws_accountid/d" ./group_vars/all/synctree.yaml
+        echo "aws_accountid: $AWS_ACCOUNTID" >> ./group_vars/all/synctree.yaml
+
+        sed -i "/aws_region/d" ./group_vars/all/synctree.yaml
+        echo "aws_region: $AWS_REGION" >> ./group_vars/all/synctree.yaml
+
+        echo "aws_accountid :" `cat group_vars/all/synctree.yaml | yq '.aws_accountid'`
+        echo "aws_region :" `cat group_vars/all/synctree.yaml | yq '.aws_region'`
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Create kubernetes config
+  hosts: localhost
+  tasks:
+    - name: Create config
+      shell: |
+        export AWS_REGION=`aws configure get region`
+        aws eks update-kubeconfig --region={{ aws_region | default("$AWS_REGION") }} --name={{ eks_cluster_name }}
+        kubectl get nodes
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Check tools for installation
+  hosts: localhost
+  tasks:
+    - name: "Check redis-cli"
+      shell: redis-cli --version
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check mysql-client"
+      shell: mysql --version
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check eksctl"
+      shell: eksctl version
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check kubectl"
+      shell: kubectl
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check cmctl"
+      shell: cmctl --help
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check yq"
+      shell: yq --version
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check docker"
+      shell: |
+        sudo systemctl start docker
+        docker ps
+      register: result
+
+    - debug:
+        var: result
+
+- name: Check AWS Infrastructure for SyncTree
+  hosts: localhost
+  tasks:
+    - name: "Check Elasticache status"
+      shell: redis-cli -h {{ elasticache_endpoint }} -p {{ elasticache_port }} -c ping
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check Aurora database for data"
+      command: mysql -h {{ aurora_data_endpoint }} -u {{ aurora_data_username }} -p{{ aurora_data_password }} -e "select version()"
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check Aurora database for log"
+      command: mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} -e "select version()"
+      register: result
+
+    - debug:
+        var: result
+
+    - name: "Check EKS worker nodes"
+      shell: |
+        arr=(`kubectl get nodes | awk '{print $2 }' | tail -n+2`)
+
+        kubectl get nodes
+
+        for var in "${arr[@]}"
+        do
+            if [ $var != "Ready" ]
+            then
+                echo -e "You should check eks worker node status.\n"
+                exit
+            fi
+        done
+
+      register: result
+
+    - debug:
+        var: result
+
+
+- name: Set studio account
+  hosts: localhost
+  tasks:
+    - name: Set studio account
+      failed_when: (studio_username|length == 0) or (studio_email|length == 0) or (studio_password|length == 0)
+      shell: |
+        cp ./templates/03.DataDB_Account_Data_Insert.sql ./sql/
+
+        sed -Ei "s|YOUR-STUDIO-USERNAME|{{ studio_username }}|g" ./sql/03.DataDB_Account_Data_Insert.sql
+        sed -Ei "s|YOUR-STUDIO-EMAIL|{{ studio_email }}|g" ./sql/03.DataDB_Account_Data_Insert.sql
+        sed -Ei "s|YOUR-STUDIO-PASSWORD|{{ studio_password }}|g" ./sql/03.DataDB_Account_Data_Insert.sql
+
+        echo "studio_account :" `cat ./sql/data/03.DataDB_Account_Data_Insert.sql | grep -e "SET @name" -e "SET @email" -e "SET @passphrase"`
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Set log database
+  hosts: localhost
+  tasks:
+    - name: set log database endpoint and port
+      shell: |
+        cp ./templates/04.DataDB_Shard_Info_Data_Insert.sql ./sql/
+        sed -i "s/YOUR-AURORA-LOG-ENDPOINT/{{ aurora_log_endpoint }}/g" ./sql/04.DataDB_Shard_Info_Data_Insert.sql
+        sed -i "s/YOUR-AURORA-LOG-PORT/{{ aurora_log_port }}/g" ./sql/04.DataDB_Shard_Info_Data_Insert.sql
+
+        echo "log_endpoint :" `cat ./sql/04.DataDB_Shard_Info_Data_Insert.sql | grep "SET @connection_string"`
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Create database schema
+  hosts: localhost
+  tasks:
+    - name: Create schema for data
+      shell: |-
+        arr=(`mysql -h {{ aurora_data_endpoint }} -u {{ aurora_data_username }} -p{{ aurora_data_password }} -e "show databases;" | grep synctree`)
+        total_count=${{ "{" }}{{ "#" }}arr[@]}
+
+        if [ $total_count -eq 0 ] || [ $total_count -lt 6 ]
+        then
+            echo "Start creating schema for data"
+            mysql -h {{ aurora_data_endpoint }} -u {{ aurora_data_username }} -p{{ aurora_data_password }} < ./sql/00.DataDB_User_Create.sql
+
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' < ./sql/01.DataDB_synctree_script.sql
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' < ./sql/02.DataDB_Default_Insert.sql
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' < ./sql/03.DataDB_Account_Data_Insert.sql
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' < ./sql/04.DataDB_Shard_Info_Data_Insert.sql
+
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' -e "show databases;"
+        else
+            echo "Schema for data is already created"
+            mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' -e "show databases;"
+        fi
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create schema for log
+      shell: |
+        arr=(`mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} -e "show databases;" | grep synctree`)
+        total_count=${{ "{" }}{{ "#" }}arr[@]}
+
+        if [ $total_count -eq 0 ]
+        then
+            echo "Start creating schema for log"
+            # Insert code here
+            mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} < ./sql/00_1.LogDB_User_Create.sql
+            mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} < ./sql/01_1.LogDB_synctree_script.sql
+            mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} < ./sql/02_1.LogDB_Default_Insert.sql
+
+            mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} -e "show databases;"
+        else
+            echo "Schema for log is already created"
+            mysql -h {{ aurora_log_endpoint }} -u {{ aurora_log_username }} -p{{ aurora_log_password }} -e "show databases;"
+        fi
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Create an IAM OIDC Provider
+  hosts: localhost
+  tasks:
+    - name: Check OIDC Provider
+      shell: |
+        output=`aws eks describe-cluster --name {{ eks_cluster_name }} --query "cluster.identity.oidc.issuer" --output text`
+        export OIDC_ID=`echo ${output#*id/}`
+
+        sed -i "/oidc_id/d" ./group_vars/all/synctree.yaml
+        echo "oidc_id: $OIDC_ID" >> ./group_vars/all/synctree.yaml
+
+        output=`aws iam list-open-id-connect-providers | grep {{ oidc_id | default("$OIDC_ID") }}`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create an IAM OIDC
+      when: result.stdout|length == 0
+      shell: |
+        output=`eksctl utils associate-iam-oidc-provider --cluster {{ eks_cluster_name }} --approve`
+        echo $output
+        output=`aws iam list-open-id-connect-providers | grep {{ oidc_id | default("$OIDC_ID") }}`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Create IAM Policy for AWS Load Balancer Controller
+  hosts: localhost
+  tasks:
+    - name: Check policy
+      shell: |
+        result=`aws iam list-policies | grep "AWSLoadBalancerControllerIAMPolicy"`
+        echo $result
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create policy
+      when: result.stdout|length == 0
+      shell: |
+        result=`aws iam create-policy \
+          --policy-name AWSLoadBalancerControllerIAMPolicy \
+          --policy-document file://./json/alb_iam_policy.json`
+        echo $result
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Create IAM Role for AWS Load Balancer Controller
+  hosts: localhost
+  tasks:
+    - name: Check role
+      shell: |
+        output=`eksctl get iamserviceaccount --cluster={{ eks_cluster_name }} | grep aws-load-balancer-controller`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create role
+      when: result.stdout|length == 0
+      async: 300
+      poll: 0
+      shell: |
+        export AWS_ACCOUNTID=`aws sts get-caller-identity | yq '.Account'`
+        output=`eksctl create iamserviceaccount \
+          --cluster={{ eks_cluster_name }} \
+          --namespace=kube-system \
+          --name=aws-load-balancer-controller \
+          --attach-policy-arn=arn:aws:iam::{{ aws_accountid | default("$AWS_ACCOUNTID") }}:policy/AWSLoadBalancerControllerIAMPolicy \
+          --override-existing-serviceaccounts \
+          --approve`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait for the configuration to complete
+      when: result.ansible_job_id is defined
+      async_status:
+        jid: "{{ result.ansible_job_id }}"
+      until: result.finished
+      retries: 400
+      delay: 3
+      register: result
+      
+    - debug:
+        var: result
+      
+- name: Install Cert-Manager
+  hosts: localhost
+  tasks:
+    - name: Install cert-manager
+      async: 300
+      poll: 0
+      shell: kubectl apply -f ./yaml/cert-manager.yaml
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait until cert-manager is deployed
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: cert-manager
+      until: result|json_query('resources[*].status.phase')|unique == ["Running"]
+      retries: 300
+      delay: 3
+      register: result
+
+    - name: Show cert-manager status
+      shell: kubectl get pods -n cert-manager
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait until cmctl is available
+      shell: cmctl check api
+      until: result.stdout == "The cert-manager API is ready"
+      retries: 300
+      delay: 3
+      register: result
+
+    - debug:
+        var: result
+
+    - name:  Install crds
+      shell: kubectl apply -k ./yaml
+      register: result
+
+    - debug:
+        var: result
+
+
+- name: Install AWS Load Balancer Controller
+  hosts: localhost
+  tasks:
+    - name: Check if additional policy is created
+      shell: |
+        output=`aws iam list-policies | grep "AWSLoadBalancerControllerIAMPolicy"`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create additional policy
+      when: result.stdout|length == 0
+      shell: |
+        aws iam create-policy \
+        --policy-name AWSLoadBalancerControllerAdditionalIAMPolicy \
+        --policy-document file://./json/alb_iam_policy_v1_to_v2_additional.json
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Check if role is attached
+      shell: |
+        export AWS_ACCOUNTID=`aws sts get-caller-identity | yq '.Account'`
+        role_name=`aws iam list-roles | grep "eksctl-{{ eks_cluster_name }}-addon-iamservice" | yq .[0].RoleName | awk '{gsub(/^\s+|\s+$/, "");print}'`
+
+        export EKS_IAM_SERVICE_ROLE_NAME=$role_name
+        sed -i "/eks_iam_service_role_name/d" ./group_vars/all/synctree.yaml
+        echo "eks_iam_service_role_name: $EKS_IAM_SERVICE_ROLE_NAME" >> ./group_vars/all/synctree.yaml
+
+        output=`aws iam list-attached-role-policies --role-name {{ eks_iam_service_role_name | default("$EKS_IAM_SERVICE_ROLE_NAME") }}`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Add a policy to the IAM role
+      when: result.stdout|length == 0
+      shell: |
+        export AWS_ACCOUNTID=`aws sts get-caller-identity | yq '.Account'`
+        role_name=`aws iam list-roles | grep "eksctl-{{ eks_cluster_name }}-addon-iamservice" | yq .[0].RoleName | awk '{gsub(/^\s+|\s+$/, "");print}'`
+
+        export EKS_IAM_SERVICE_ROLE_NAME=$role_name
+
+        aws iam attach-role-policy \
+        --role-name {{ eks_iam_service_role_name | default("$EKS_IAM_SERVICE_ROLE_NAME") }} \
+        --policy-arn arn:aws:iam::{{ aws_accountid | default("$AWS_ACCOUNTID") }}:policy/AWSLoadBalancerControllerAdditionalIAMPolicy
+
+        aws iam list-attached-role-policies --role-name {{ eks_iam_service_role_name | default("$EKS_IAM_SERVICE_ROLE_NAME") }}
+      
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Change cluster name in v2_4_0_full.yaml
+      shell: |
+        cp ./templates/v2_4_0_full.yaml ./yaml/
+
+        sed -Ei "s|your-cluster-name|{{ eks_cluster_name }}|" ./yaml/v2_4_0_full.yaml
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Install AWS Load Balancer Controller
+      async: 300
+      poll: 0
+      shell: kubectl apply -f ./yaml/v2_4_0_full.yaml
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait until aws-load-balancer-controllers are deployed
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: kube-system
+      until: result|to_json|from_json|json_query('resources[?starts_with(metadata.name,`aws-load-balancer-controller`)].status.phase')|unique == ['Running']
+      retries: 300
+      delay: 3
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+- name: Create Policy for RegisterUsage and Add a policy to IAM Role
+  hosts: localhost
+  tasks:
+    - name: Check if AWSMArketPlaceRegisterUsageIAMPolicy is created
+      shell: |
+        output=`aws iam list-policies | grep "AWSMArketPlaceRegisterUsageIAMPolicy"`
+        echo $output
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create AWSMArketPlaceRegisterUsageIAMPolicy
+      when: result.stdout|length == 0
+      shell: |
+        aws iam create-policy \
+        --policy-name AWSMArketPlaceRegisterUsageIAMPolicy \
+        --policy-document file://./json/register-usage_iam_policy.json
+  
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Add a policy to the IAM Role.
+      shell: |
+        export AWS_ACCOUNTID=`aws sts get-caller-identity | yq '.Account'`
+
+        aws iam attach-role-policy \
+        --role-name  EKSWorkerNodeRoleForSyncTree \
+        --policy-arn arn:aws:iam::{{ aws_accountid | default("$AWS_ACCOUNTID") }}:policy/AWSMArketPlaceRegisterUsageIAMPolicy
+
+        aws iam list-attached-role-policies --role-name EKSWorkerNodeRoleForSyncTree
+
+      register: result
+
+    - debug:
+        var: result
+
+- name: Login Amazon ECR
+  hosts: localhost
+  tasks:
+    - name: docker login to AWS ECR
+      shell: aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 709825985650.dkr.ecr.us-east-1.amazonaws.com
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Docker pull image to check entitlement
+      shell: |
+        docker pull 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/busybox:1.0.0.0
+      register: result
+
+    - debug:
+        var: result
+
+- name: Install SyncTree solutions on EKS
+  hosts: localhost
+  tasks:
+    - name: Update the settings required for SyncTree installation
+      shell: |
+        # update domain_key
+        export PORTAL_DOMAIN_KEY=`mysql -h {{ aurora_data_endpoint }} -u admin -p'Dpsxjvmf12!' -D synctree_portal -e "select portal_url from portal_list where portal_list_id = 1;" | sed -n '2p'`
+        sed -i "/portal_domain_key/d" ./group_vars/all/synctree.yaml
+        echo "portal_domain_key: $PORTAL_DOMAIN_KEY" >> ./group_vars/all/synctree.yaml
+        echo "portal_domain_key: " {{ portal_domain_key | default("$PORTAL_DOMAIN_KEY") }}
+
+        # Update credentials
+        cp ./templates/credentials ./synctree/deploy/
+        sed -i "s/YOUR-ELASTICACHE-ENDPOINT/{{ elasticache_endpoint }}/" ./synctree/deploy/credentials
+        sed -i "s/YOUR-ELASTICACHE-PORT/{{ elasticache_port }}/" ./synctree/deploy/credentials
+        sed -i "s/YOUR-AURORA-DATA-ENDPOINT/{{ aurora_data_endpoint }}/" ./synctree/deploy/credentials
+        sed -i "s/YOUR-AURORA-DATA-PORT/{{ aurora_data_port }}/" ./synctree/deploy/credentials
+        sed -i "s/YOUR-PORTAL-DOMAIN-KEY/{{ portal_domain_key | default('$PORTAL_DOMAIN_KEY') }}/g" ./synctree/deploy/credentials
+
+        # Update php.ini
+        cp ./templates/php.ini ./synctree/deploy/
+        sed -i "s/YOUR-ELASTICACHE_ENDPOINT/{{ elasticache_endpoint }}/" ./synctree/deploy/php.ini
+        sed -i "s/YOUR-ELASTICACHE_PORT/{{ elasticache_port }}/" ./synctree/deploy/php.ini
+
+        # Create aws.txt
+        echo "AWS_ACCOUNTID=`aws sts get-caller-identity | yq .Account`" > ./synctree/deploy/aws.txt
+      
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Install SyncTree
+      async: 300
+      poll: 0
+      shell: |
+        cd ~/install-synctree/synctree/
+        chmod +x ./deploy-synctree.sh
+        ./deploy-synctree.sh
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait until synctree pods are deployed
+      kubernetes.core.k8s_info:
+        api_version: v1
+        kind: Pod
+        namespace: synctree
+      until: result|json_query('resources[*].status.phase')|unique == ["Running"]
+      retries: 300
+      delay: 3
+      register: result
+
+    - debug:
+        var: result.stdout_lines
+
+
+- name: Create AWS Load Balancer
+  hosts: localhost
+  tasks:
+    - name: Check ingress and AWS Load Balancer
+      shell: |
+        output_ingress=`kubectl get ingress -n synctree | grep synctree-ingress | awk '{ print $1 }' | awk '{gsub(/^\s+|\s+$/, "");print}'`
+        output_alb=`aws elbv2 describe-load-balancers | yq e '.LoadBalancers[] | select(.LoadBalancerName == "k8s-synctree-synctree*") | .State.Code' | awk '{gsub(/^\s+|\s+$/, "");print}'`
+
+        if [ "$output_ingress" == "synctree-ingress" ] && [ "$output_alb" == "" ]
+        then
+            echo -e "synctree-ingres exists and AWS Load Balancer not exists.\n"
+            echo -e "Please follow the procedure.\n"
+            echo -e "1. Move to synctree/alb directory.\n"
+            echo -e "2. chmod +x delete-ingress.sh.\n"
+            echo -e "3. ./delete-ingress.sh.\n"
+            exit 1
+        fi
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Create ingress
+      async: 300
+      poll: 0
+      shell: |
+        cd ~/install-synctree/synctree/alb
+        chmod +x deploy-ingress.sh
+        ./deploy-ingress.sh
+
+      register: result
+
+    - debug:
+        var: result
+
+    - name: Please wait until aws load balancer is deployed
+      shell: aws elbv2 describe-load-balancers | yq e '.LoadBalancers[] | select(.LoadBalancerName == "k8s-synctree-synctree*") | .State.Code'
+      until: result.stdout == "active"
+      retries: 300
+      delay: 3
+      register: result
+
+    - debug:
+        var: result

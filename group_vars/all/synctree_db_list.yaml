@@ -1,0 +1,10 @@
+data_db_list:
+  - synctree_agent
+  - synctree_auth
+  - synctree_marketplace
+  - synctree_plan
+  - synctree_portal
+  - synctree_studio
+log_db_list:
+  - synctree_studio_logdb
+

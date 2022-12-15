@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: synctree-studio
+  name: synctree-portal-admin
   namespace: synctree
 spec:
   replicas: 1
   selector:
     matchLabels:
-      service: synctree-studio
-      app: studio #label setting
+      service: synctree-portal-admin
+      app: portal-admin #label setting
   template:
     metadata:
       labels:
-        service: synctree-studio
-        app: studio #label setting
+        service: synctree-portal-admin
+        app: portal-admin #label setting
     spec:
       affinity:
         podAntiAffinity:
@@ -24,12 +24,12 @@ spec:
                 matchExpressions:
                 - key: app
                   values:
-                  - studio
+                  - portal-admin
                   operator: In
               topologyKey: "kubernetes.io/hostname"
       containers:
-      - name: synctree-studio
-        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/studio:1.1.10.11
+      - name: synctree-portal-admin
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/portal:2.0.2.10
         imagePullPolicy: IfNotPresent
         securityContext:
           capabilities:
@@ -41,15 +41,15 @@ spec:
         volumeMounts:
         - name: deploy-configmap
           mountPath: "/root/deploy"
-        - name: nginx-studio-conf
+        - name: nginx-portal-admin-conf
           mountPath: "/etc/nginx/sites-enabled"
         - name: log
-          mountPath: "/home/ubuntu/apps/synctree-studio/logs"
+          mountPath: "/home/ubuntu/apps/synctree-portal/logs"
         - name: user-storage
           mountPath: "/home/ubuntu/user-storage"
         - name: shared
-          mountPath: "/home/ubuntu/shared"
-        command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
+          mountPath: "/home/ubuntu/shared" 
+        command: ["/bin/bash", "-c", "sh /root/deploy/portal.sh && sh /root/deploy/deploy.sh"]
       initContainers:
       - name: log-dir-permission-fix
         image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/busybox:1.0.0.0
@@ -66,16 +66,16 @@ spec:
       - name: deploy-configmap
         configMap:
           name: deploy-configmap
-      - name: nginx-studio-conf
+      - name: nginx-portal-admin-conf
         configMap:
-          name: nginx-studio-conf
+          name: nginx-portal-admin-conf
           items:
-            - key: studio.conf
-              path: studio.conf
+            - key: portal-admin.conf
+              path: portal-admin.conf
       - name: log
         hostPath:
-          path: "/var/log/synctree/logs-group/studio-log"
-          type: DirectoryOrCreate
+          path: "/var/log/synctree/logs-group/portal-admin-log"
+          type: DirectoryOrCreate 
       - name: user-storage
         hostPath:
           path: "/data/store"
@@ -90,12 +90,12 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: synctree-studio
+  name: synctree-portal-admin
 spec:
   type: NodePort
   ports:
   - port: 80
-    nodePort: 30180
+    nodePort: 30184
     protocol: TCP
   selector:
-    service: synctree-studio
+    service: synctree-portal-admin

@@ -2,19 +2,34 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: synctree-tool-proxy
+  namespace: synctree
 spec:
   replicas: 1
   selector:
     matchLabels:
       service: synctree-tool-proxy
+      app: tool-proxy #label setting
   template:
     metadata:
       labels:
         service: synctree-tool-proxy
+        app: tool-proxy #label setting
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  values:
+                  - tool-proxy
+                  operator: In
+              topologyKey: "kubernetes.io/hostname"
       containers:
       - name: synctree-tool-proxy
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-tool:1.0.4.1
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/tool:1.0.13.2
         imagePullPolicy: IfNotPresent
         securityContext:
           capabilities:
@@ -30,15 +45,23 @@ spec:
           mountPath: "/etc/nginx/sites-enabled"
         - name: log
           mountPath: "/home/ubuntu/apps/synctree-tool/logs"
+        - name: user-storage
+          mountPath: "/home/ubuntu/user-storage"
+        - name: shared
+          mountPath: "/home/ubuntu/shared"
         command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
       initContainers:
       - name: log-dir-permission-fix
-        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/busybox:1.0.0.0
         imagePullPolicy: IfNotPresent
-        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs"]
+        command: ["/bin/sh", "-c","chmod -R 775 /mnt && chown -R root:www-data /mnt"]
         volumeMounts:
         - name: log 
           mountPath: "/mnt/logs"
+        - name: user-storage
+          mountPath: "/mnt/user-storage"
+        - name: shared
+          mountPath: "/mnt/shared"
       volumes:
       - name: deploy-configmap
         configMap:
@@ -52,7 +75,15 @@ spec:
       - name: log
         hostPath:
           path: "/var/log/synctree/logs-group/tool-proxy-log"
-          type: DirectoryOrCreate 
+          type: DirectoryOrCreate
+      - name: user-storage
+        hostPath:
+          path: "/data/store"
+          type: DirectoryOrCreate
+      - name: shared
+        hostPath:
+          path: "/data/shared"
+          type: DirectoryOrCreate
       imagePullSecrets:
         - name: private-repo
 ---
@@ -62,7 +93,6 @@ metadata:
   name: synctree-tool-proxy
 spec:
   type: NodePort
-  externalTrafficPolicy: Cluster
   ports:
   - port: 80
     nodePort: 30190

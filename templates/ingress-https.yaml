@@ -53,3 +53,14 @@ spec:
             name: synctree-portal
             port:
               number: 80 
+  - host: portal-admin.YOUR-DOMAIN
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: synctree-portal-admin
+            port:
+              number: 80
+

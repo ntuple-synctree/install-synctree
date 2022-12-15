@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: synctree-testing
+  namespace: synctree
 spec:
   replicas: 1
   selector:
@@ -14,8 +15,15 @@ spec:
     spec:
       containers:
       - name: synctree-testing
-        image: repo.synctreestudio.com/synctree-studio-project/synctree-testing:1.0.4.1
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/testing:1.0.13.2
         imagePullPolicy: IfNotPresent
+        securityContext:
+          capabilities:
+            add:
+              - NET_BIND_SERVICE
+              - SYS_ADMIN
+              - DAC_READ_SEARCH
+          privileged: true
         volumeMounts:
         - name: deploy-configmap
           mountPath: "/root/deploy"
@@ -25,17 +33,21 @@ spec:
           mountPath: "/home/ubuntu/apps/synctree-testing/logs"
         - name: user-storage
           mountPath: "/home/ubuntu/user-storage"
+        - name: shared
+          mountPath: "/home/ubuntu/shared"
         command: ["/bin/bash", "-c", "sh /root/deploy/deploy.sh"]
       initContainers:
       - name: log-dir-permission-fix
-        image: repo.synctreestudio.com/synctree-library/busybox:latest
+        image: 709825985650.dkr.ecr.us-east-1.amazonaws.com/ntuple-synctree/busybox:1.0.0.0
         imagePullPolicy: IfNotPresent
-        command: ["/bin/sh","-c","chmod -R 775 /mnt/logs && chown root:www-data /mnt/logs && chmod -R 775 /home/ubuntu/user-storage && chown root:www-data /home/ubuntu/user-storage"]
+        command: ["/bin/sh", "-c","chmod -R 775 /mnt && chown -R root:www-data /mnt"]
         volumeMounts:
-        - name: user-storage
-          mountPath: "/home/ubuntu/user-storage"
         - name: log 
           mountPath: "/mnt/logs"
+        - name: user-storage
+          mountPath: "/mnt/user-storage"
+        - name: shared
+          mountPath: "/mnt/shared"
       volumes:
       - name: deploy-configmap
         configMap:
@@ -46,14 +58,18 @@ spec:
           items:
             - key: testing.conf
               path: testing.conf
+      - name: log
+        hostPath:
+          path: "/var/log/synctree/logs-group/testing-log"
+          type: DirectoryOrCreate
       - name: user-storage
         hostPath:
           path: "/data/store"
           type: DirectoryOrCreate
-      - name: log
+      - name: shared
         hostPath:
-          path: "/var/log/synctree/logs-group/testing-log"
-          type: DirectoryOrCreate 
+          path: "/data/shared"
+          type: DirectoryOrCreate
       imagePullSecrets:
         - name: private-repo
 ---
@@ -63,7 +79,6 @@ metadata:
   name: synctree-testing
 spec:
   type: NodePort
-  externalTrafficPolicy: Cluster
   ports:
   - port: 80
     nodePort: 30182

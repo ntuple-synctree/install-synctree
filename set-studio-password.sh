@@ -39,9 +39,9 @@ else
 	echo "export STUDIO_USER_PASSWORD=$NEW_STUDIO_USER_PASSWORD" >> ~/env.sh
 fi
 
-cp ./templates/8.Account_Data_Insert.sql ./sql/data/
+cp ./templates/03.DataDB_Account_Data_Insert.sql ./sql/
 
-sed -Ei "s|YOUR-STUDIO-USERNAME|$NEW_STUDIO_USER_NAME|g" ./sql/data/8.Account_Data_Insert.sql
-sed -Ei "s|YOUR-STUDIO-EMAIL|$NEW_STUDIO_USER_EMAIL|g" ./sql/data/8.Account_Data_Insert.sql
-sed -Ei "s|YOUR-STUDIO-PASSWORD|$NEW_STUDIO_USER_PASSWORD|g" ./sql/data/8.Account_Data_Insert.sql
+sed -Ei "s|YOUR-STUDIO-USERNAME|$NEW_STUDIO_USER_NAME|g" ./sql/03.DataDB_Account_Data_Insert.sql
+sed -Ei "s|YOUR-STUDIO-EMAIL|$NEW_STUDIO_USER_EMAIL|g" ./sql/03.DataDB_Account_Data_Insert.sql
+sed -Ei "s|YOUR-STUDIO-PASSWORD|$NEW_STUDIO_USER_PASSWORD|g" ./sql/03.DataDB_Account_Data_Insert.sql
 
